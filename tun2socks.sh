@@ -4,7 +4,7 @@
 # Script Name:  ocserv-socks5-forwarder.sh
 # Description:  Automated script to route ocserv VPN traffic through a SOCKS5 
 #               proxy using tun2socks and policy routing.
-# Author:       Liu Guodong & AI
+# Author:       SheepKeeperS
 # ==============================================================================
 
 # 颜色定义
