@@ -168,9 +168,10 @@ uninstall_service() {
     rm -f /etc/tun2socks-up.sh
     rm -f /etc/tun2socks-down.sh
     rm -f /usr/local/bin/tun2socks
+    rm -f /usr/local/bin/tun2socks-menu
     
     systemctl daemon-reload
-    echo -e "${GREEN}卸载完成！策略路由规则、虚拟网卡接口及服务均已彻底清除。${NC}"
+    echo -e "${GREEN}卸载完成！策略路由规则、虚拟网卡接口、全局管理脚本及服务均已彻底清除。${NC}"
 }
 
 install_service() {
@@ -184,17 +185,58 @@ install_service() {
             exit 1
         fi
     else
-        # 交互式菜单模式
-        echo -e "\n${YELLOW}▶ 配置中转网络与落地代理信息${NC}"
-        
+        # 自动探测本机已安装的 ocserv 分配网段
+        local DETECTED_SUBNET="192.168.1.0/24"
+        if [[ -f /etc/ocserv/ocserv.conf ]]; then
+            local network; network=$(grep -E '^[[:space:]]*ipv4-network[[:space:]]*=' /etc/ocserv/ocserv.conf | awk -F '=' '{print $2}' | tr -d '[:space:]' | tr -d '"' | tr -d "'")
+            local netmask; netmask=$(grep -E '^[[:space:]]*ipv4-netmask[[:space:]]*=' /etc/ocserv/ocserv.conf | awk -F '=' '{print $2}' | tr -d '[:space:]' | tr -d '"' | tr -d "'")
+            if [[ -n "$network" ]]; then
+                if [[ "$network" =~ / ]]; then
+                    DETECTED_SUBNET="$network"
+                elif [[ -n "$netmask" ]]; then
+                    local cidr
+                    case "$netmask" in
+                        255.255.255.255) cidr=32 ;;
+                        255.255.255.254) cidr=31 ;;
+                        255.255.255.252) cidr=30 ;;
+                        255.255.255.248) cidr=29 ;;
+                        255.255.255.240) cidr=28 ;;
+                        255.255.255.224) cidr=27 ;;
+                        255.255.255.192) cidr=26 ;;
+                        255.255.255.128) cidr=25 ;;
+                        255.255.255.0)   cidr=24 ;;
+                        255.255.254.0)   cidr=23 ;;
+                        255.255.252.0)   cidr=22 ;;
+                        255.255.248.0)   cidr=21 ;;
+                        255.255.240.0)   cidr=20 ;;
+                        255.255.224.0)   cidr=19 ;;
+                        255.255.192.0)   cidr=18 ;;
+                        255.255.128.0)   cidr=17 ;;
+                        255.255.0.0)     cidr=16 ;;
+                        255.254.0.0)     cidr=15 ;;
+                        255.252.0.0)     cidr=14 ;;
+                        255.248.0.0)     cidr=13 ;;
+                        255.240.0.0)     cidr=12 ;;
+                        255.224.0.0)     cidr=11 ;;
+                        255.192.0.0)     cidr=10 ;;
+                        255.128.0.0)     cidr=9  ;;
+                        255.0.0.0)       cidr=8  ;;
+                        *)               cidr=24 ;;
+                    esac
+                    DETECTED_SUBNET="${network}/${cidr}"
+                fi
+                echo -e "${GREEN}检测到本机已安装 ocserv，已自动识别网段：${DETECTED_SUBNET}${NC}"
+            fi
+        fi
+
         # 网段校验
         while true; do
-            read -p "请输入 ocserv 客户端分配的网段 (默认 192.168.1.0/24): " OCSERV_SUBNET
-            OCSERV_SUBNET=${OCSERV_SUBNET:-"192.168.1.0/24"}
+            read -p "请输入 ocserv 客户端分配的网段 (默认 ${DETECTED_SUBNET}): " OCSERV_SUBNET
+            OCSERV_SUBNET=${OCSERV_SUBNET:-"$DETECTED_SUBNET"}
             if [[ "$OCSERV_SUBNET" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$ ]]; then
                 break
             else
-                echo -e "${RED}输入格式错误！必须为 CIDR 格式，例如 192.168.1.0/24${NC}"
+                echo -e "${RED}输入格式错误！必须为 CIDR 格式，例如 ${DETECTED_SUBNET}${NC}"
             fi
         done
 
@@ -268,10 +310,10 @@ install_service() {
     TUN2SOCKS_URL="https://github.com/xjasonlyu/tun2socks/releases/download/v2.6.0/tun2socks-linux-${TUN_ARCH}.zip"
     
     # 优先采用带进度的下载，失败则尝试带国内代理的镜像源 fallback
-    if ! wget --show-progress -O /tmp/tun2socks.zip "$TUN2SOCKS_URL"; then
+    if ! wget --timeout=15 --tries=3 --show-progress -O /tmp/tun2socks.zip "$TUN2SOCKS_URL"; then
         echo -e "${YELLOW}官方链接下载失败，正在切换 ghproxy 国内加速源下载...${NC}"
         TUN2SOCKS_URL="https://ghproxy.cn/https://github.com/xjasonlyu/tun2socks/releases/download/v2.6.0/tun2socks-linux-${TUN_ARCH}.zip"
-        wget --show-progress -O /tmp/tun2socks.zip "$TUN2SOCKS_URL" || {
+        wget --timeout=15 --tries=3 --show-progress -O /tmp/tun2socks.zip "$TUN2SOCKS_URL" || {
             echo -e "${RED}错误: 下载 tun2socks 失败，请检查 VPS 网络连接。${NC}"
             exit 1
         }
@@ -305,8 +347,10 @@ done
 ip route flush table 200 2>/dev/null || true
 
 # 3. 删除 Forward 链转发规则
-iptables -D FORWARD -i vpns+ -o tun0 -j ACCEPT 2>/dev/null || true
-iptables -D FORWARD -i tun0 -o vpns+ -j ACCEPT 2>/dev/null || true
+if command -v iptables >/dev/null 2>&1; then
+    iptables -D FORWARD -i vpns+ -o tun0 -j ACCEPT 2>/dev/null || true
+    iptables -D FORWARD -i tun0 -o vpns+ -j ACCEPT 2>/dev/null || true
+fi
 
 # 4. 关闭并卸载虚拟网卡设备 tun0
 ip link set dev tun0 down 2>/dev/null || true
@@ -321,15 +365,19 @@ EOT
 /etc/tun2socks-down.sh 2>/dev/null || true
 
 # 2. 创建 tun 设备并赋予小范围的 B 类掩码，防止干扰常用 IP 段
-ip tuntap add mode tun dev tun0
-ip addr add 172.23.45.1/30 dev tun0
-ip link set dev tun0 up
+ip tuntap add mode tun dev tun0 2>/dev/null || true
+ip addr add 172.23.45.1/30 dev tun0 2>/dev/null || true
+ip link set dev tun0 up 2>/dev/null || true
 
 # 3. 配置策略路由与防火墙放行规则
-ip rule add from ${OCSERV_SUBNET} table 200
-ip route add default dev tun0 table 200
-iptables -I FORWARD -i vpns+ -o tun0 -j ACCEPT
-iptables -I FORWARD -i tun0 -o vpns+ -j ACCEPT
+ip rule add from ${OCSERV_SUBNET} table 200 2>/dev/null || true
+ip route add default dev tun0 table 200 2>/dev/null || true
+
+# 4. 防火墙规则放行（防重复添加及无 iptables 环境报错）
+if command -v iptables >/dev/null 2>&1; then
+    iptables -C FORWARD -i vpns+ -o tun0 -j ACCEPT 2>/dev/null || iptables -I FORWARD -i vpns+ -o tun0 -j ACCEPT 2>/dev/null || true
+    iptables -C FORWARD -i tun0 -o vpns+ -j ACCEPT 2>/dev/null || iptables -I FORWARD -i tun0 -o vpns+ -j ACCEPT 2>/dev/null || true
+fi
 EOT
     chmod +x /etc/tun2socks-up.sh
 
@@ -343,8 +391,9 @@ After=network.target
 [Service]
 Type=simple
 User=root
+LimitNOFILE=65535
 ExecStartPre=/etc/tun2socks-up.sh
-ExecStart=/usr/local/bin/tun2socks -device tun0 -proxy ${SOCKS_PROXY} -loglevel warning
+ExecStart=/usr/local/bin/tun2socks -device tun0 -proxy ${SOCKS_PROXY} -loglevel warn
 ExecStopPost=/etc/tun2socks-down.sh
 Restart=on-failure
 RestartSec=5s
@@ -359,15 +408,24 @@ EOT
     systemctl enable tun2socks >/dev/null 2>&1
     systemctl restart tun2socks
 
-    # 8. 完成提示
+    # 8. 复制管理脚本至系统全局路径，方便随时输入命令调用管理菜单
+    if [[ -f "$0" && "$(basename "$0")" == "tun2socks.sh" ]]; then
+        cp "$0" /usr/local/bin/tun2socks-menu
+    else
+        wget -qO /usr/local/bin/tun2socks-menu https://raw.githubusercontent.com/lgdglgc/tun2socks/main/tun2socks.sh
+    fi
+    chmod +x /usr/local/bin/tun2socks-menu
+
+    # 9. 完成提示
     if systemctl is-active --quiet tun2socks; then
         echo -e "\n${GREEN}=================================================${NC}"
         echo -e "${GREEN}安装与配置完成！${NC}"
         echo -e "tun2socks 已经在后台运行并设置了开机自启。"
+        echo -e "您可以在系统任意位置运行 ${YELLOW}tun2socks-menu${NC} 快速调出管理面板。"
         check_status
         echo -e "${GREEN}=================================================${NC}"
     else
-        echo -e "\n${RED}服务启动可能遇到问题，请使用 systemctl status tun2socks 或选择选项 6 检查日志。${NC}"
+        echo -e "\n${RED}服务启动可能遇到问题，请使用 systemctl status tun2socks 或运行 tun2socks-menu 并选择选项 6 检查日志。${NC}"
     fi
 }
 

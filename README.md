@@ -52,6 +52,8 @@ bash <(wget -qO- https://raw.githubusercontent.com/lgdglgc/tun2socks/main/tun2so
    ```bash
    ./tun2socks.sh
    ```
+   *注：安装服务后，脚本会自动注册为全局命令。您可以在系统任意路径下直接输入 `tun2socks-menu` 随时唤起此管理面板。*
+
    **菜单预览：**
    ```
    =================================================
