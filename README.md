@@ -71,11 +71,11 @@ bash <(wget -qO- https://raw.githubusercontent.com/lgdglgc/tun2socks/main/tun2so
    可通过参数直接执行安装或卸载，适合自动化脚本：
    *   **一键静默安装 (有账号密码认证)**：
        ```bash
-       ./tun2socks.sh --install --subnet 10.10.10.0/24 --proxy socks5://myuser:mypassword@1.2.3.4:1080
+       ./tun2socks.sh --install --subnet 192.168.1.0/24 --proxy socks5://myuser:mypassword@1.2.3.4:1080
        ```
    *   **一键静默安装 (无认证)**：
        ```bash
-       ./tun2socks.sh -i --subnet 10.10.10.0/24 --proxy socks5://1.2.3.4:1080
+       ./tun2socks.sh -i --subnet 192.168.1.0/24 --proxy socks5://1.2.3.4:1080
        ```
    *   **一键静默卸载**：
        ```bash
@@ -90,7 +90,7 @@ bash <(wget -qO- https://raw.githubusercontent.com/lgdglgc/tun2socks/main/tun2so
 | :--- | :--- |
 | `-i, --install` | 一键无人值守安装模式 |
 | `-u, --uninstall` | 一键无人值守卸载模式 |
-| `--subnet <CIDR>` | 指定 `ocserv` 客户端分配的子网段 (例如 `10.10.10.0/24`) |
+| `--subnet <CIDR>` | 指定 `ocserv` 客户端分配的子网段 (例如 `192.168.1.0/24`) |
 | `--proxy <SOCKS5>` | 指定落地 SOCKS5 代理连接串 (例如 `socks5://user:pass@ip:port` 或 `socks5://ip:port`) |
 | `-h, --help` | 显示脚本参数使用帮助 |
 

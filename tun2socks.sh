@@ -4,7 +4,7 @@
 # Script Name:  ocserv-socks5-forwarder.sh
 # Description:  Automated script to route ocserv VPN traffic through a SOCKS5 
 #               proxy using tun2socks and policy routing.
-# Author:       SheepKeeperS
+# Author:       Liu Guodong & AI
 # ==============================================================================
 
 # 颜色定义
@@ -47,7 +47,7 @@ while [[ $# -gt 0 ]]; do
             echo "选项:"
             echo "  -i, --install              命令行一键安装模式"
             echo "  -u, --uninstall            命令行一键卸载模式"
-            echo "  --subnet <CIDR>            指定 ocserv 分配子网 (例如 10.10.10.0/24)"
+            echo "  --subnet <CIDR>            指定 ocserv 分配子网 (例如 192.168.1.0/24)"
             echo "  --proxy <SOCKS5_URL>       指定 SOCKS5 代理串 (例如 socks5://user:pass@ip:port)"
             echo "  -h, --help                 显示本帮助页面"
             exit 0
@@ -189,12 +189,12 @@ install_service() {
         
         # 网段校验
         while true; do
-            read -p "请输入 ocserv 客户端分配的网段 (默认 10.10.10.0/24): " OCSERV_SUBNET
-            OCSERV_SUBNET=${OCSERV_SUBNET:-"10.10.10.0/24"}
+            read -p "请输入 ocserv 客户端分配的网段 (默认 192.168.1.0/24): " OCSERV_SUBNET
+            OCSERV_SUBNET=${OCSERV_SUBNET:-"192.168.1.0/24"}
             if [[ "$OCSERV_SUBNET" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$ ]]; then
                 break
             else
-                echo -e "${RED}输入格式错误！必须为 CIDR 格式，例如 10.10.10.0/24${NC}"
+                echo -e "${RED}输入格式错误！必须为 CIDR 格式，例如 192.168.1.0/24${NC}"
             fi
         done
 
