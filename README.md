@@ -1,11 +1,12 @@
-# 🚀 ocserv-socks5-forwarder
+# 🚀 tun2socks - ocserv SOCKS5 中转面板
 
-一个专为 `ocserv` (AnyConnect VPN) 打造的流量中转一键脚本。基于 `tun2socks` 与 Linux 策略路由，实现将连接到 `ocserv` 的客户端流量，经由指定的落地 SOCKS5 代理进行二次中继分流转发。
+一个专为 `ocserv` (AnyConnect VPN) 打造的流量一转多中继分流管理工具。基于 `tun2socks` 与 Linux 策略路由，实现将连接到 `ocserv` 的客户端流量，经由指定的落地 SOCKS5 代理进行二次中继分流转发。
 
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Linux-orange.svg)](https://www.linux.org/)
 [![Bash](https://img.shields.io/badge/Bash-4.0+-brightgreen.svg)](https://www.gnu.org/software/bash/)
 [![tun2socks](https://img.shields.io/badge/tun2socks-v2.6.0-blue.svg)](https://github.com/xjasonlyu/tun2socks)
+[![GitHub](https://img.shields.io/badge/GitHub-lgdglgc/tun2socks-blue?logo=github)](https://github.com/lgdglgc/tun2socks)
 
 ---
 
@@ -13,7 +14,7 @@
 
 *   🤖 **自动检测 CPU 架构**：移除硬编码限制，自动匹配部署 `amd64`、`arm64`、`386`、`armv7` 等架构的二进制包，完美支持包括甲骨文 ARM 在内的各种主流 VPS 云服务器。
 *   ⚙️ **最新的核心依赖**：一键部署最新稳定版 `tun2socks v2.6.0`。
-*   🔒 **灵活的落地代理**：支持免密或带有账号密码认证的 SOCKS5 代理。
+*   🔒 **灵活的落地代理**：支持免密或带有账号密码认证 of SOCKS5 代理。
 *   🛡️ **幂等性与零规则残留**：采用 `lookup 200` 动态匹配清除机制，防止在 IP 变更或非正常重启后在系统中残留多余的路由规则；每次启动前执行防冲突环境初始化。
 *   🚀 **双模式运行**：
     *   **交互式图形化控制台**：提供日常运维管理菜单（启停、重启、状态诊断、实时日志）。
@@ -29,11 +30,11 @@
 如果您在服务器上想一键直接执行：
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/您的用户名/您的仓库名/main/tun2socks.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/lgdglgc/tun2socks/main/tun2socks.sh)
 ```
 或使用 wget：
 ```bash
-bash <(wget -qO- https://raw.githubusercontent.com/您的用户名/您的仓库名/main/tun2socks.sh)
+bash <(wget -qO- https://raw.githubusercontent.com/lgdglgc/tun2socks/main/tun2socks.sh)
 ```
 
 ---
@@ -42,7 +43,7 @@ bash <(wget -qO- https://raw.githubusercontent.com/您的用户名/您的仓库�
 
 1. 下载脚本到您的 VPS 并赋予可执行权限：
    ```bash
-   wget -O tun2socks.sh https://raw.githubusercontent.com/您的用户名/您的仓库名/main/tun2socks.sh
+   wget -O tun2socks.sh https://raw.githubusercontent.com/lgdglgc/tun2socks/main/tun2socks.sh
    chmod +x tun2socks.sh
    ```
 
